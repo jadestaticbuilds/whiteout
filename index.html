@@ -3,6 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<script>
+/* ?view=desktop preview: force desktop theme on narrow screens */
+try {
+  if (new URLSearchParams(location.search).get("view") === "desktop") {
+    document.querySelector('meta[name="viewport"]').setAttribute("content", "width=1280");
+  }
+} catch (e) {}
+</script>
 <meta name="theme-color" content="#04070f">
 <title>Whiteout</title>
 <style>
@@ -44,6 +52,31 @@ html,body{height:100%;background:#04070f;color:#e8f1f8;font-family:system-ui,-ap
 button.big{min-height:54px;padding:12px 30px;font-size:17px;font-weight:800;letter-spacing:.06em;border-radius:14px;border:none;background:linear-gradient(180deg,#ff8a3c,#e85a1e);color:#1a0d04;margin:4px}
 button.ghost{min-height:54px;padding:12px 22px;font-size:15px;font-weight:700;border-radius:14px;border:1px solid rgba(255,255,255,.3);background:transparent;color:#e8f1f8;margin:4px}
 .tip{font-size:12px;opacity:.6;margin-top:14px;line-height:1.5}
+@media (min-width:1024px){
+ #hud{padding:14px 20px calc(14px + env(safe-area-inset-top)) 20px;gap:18px}
+ .meter .lab,#fuelBox .lab,#clockBox .lab{font-size:12px}
+ .meter .bar{height:14px}
+ #fuelN{font-size:28px}
+ #clock{font-size:19px;font-variant-numeric:tabular-nums}
+ #pauseBtn{min-width:56px;min-height:56px}
+ #storm{top:calc(88px + env(safe-area-inset-top))}
+ #storm .warn{font-size:15px}
+ #feedBtn{left:auto;right:36px;transform:none;bottom:36px;min-width:300px;min-height:72px;font-size:20px;padding:14px 30px}
+ #feedBtn small{font-size:13px}
+ .card{max-width:560px;padding:36px 40px}
+ .card h1{font-size:42px}
+ .card h2{font-size:30px}
+ .card .sub{font-size:16px}
+ .card .howto{font-size:15px;max-width:440px}
+ button.big{min-height:60px;font-size:19px}
+ button.ghost{min-height:60px;font-size:16px}
+}
+@media (min-width:1440px){
+ #hud{padding:18px 28px calc(18px + env(safe-area-inset-top)) 28px;gap:28px;max-width:1600px;margin:0 auto;left:0;right:0}
+ #storm .warn{font-size:16px}
+ #feedBtn{right:60px;bottom:60px;min-width:340px;font-size:22px}
+ .card{max-width:640px}
+}
 </style>
 </head>
 <body>

@@ -78,6 +78,7 @@ button.ghost{min-height:54px;padding:12px 22px;font-size:15px;font-weight:700;bo
  .card{max-width:640px}
 }
 </style>
+  <script data-goatcounter="https://georgestriderbuilds.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </head>
 <body>
 <div id="app">
@@ -290,6 +291,7 @@ function showEnd(){
     '<div class="stat"><b>'+WO.score(S)+'</b><span>SCORE</span></div></div>'+
     '<button class="big" id="againBtn">ANOTHER NIGHT</button>';
   document.getElementById("againBtn").onclick = function(){ startGame(); };
+  if(!S.won)jsbFunRate('whiteout', card);
 }
 function startGame(){
   S = WO.newState(); pendFeed = 0; pendTrip = -1;
@@ -479,6 +481,47 @@ function frame(now){
 showStart();
 requestAnimationFrame(frame);
 })();
+</script>
+
+<script>
+/* fun-rating: 3 stars on game over, 3rd+ game over, once per session */
+function jsbFunRate(slug, mountEl){
+  if(!mountEl || mountEl.querySelector('.jsb-funrate')) return;
+  var K = 'jsb-fun-' + slug;
+  function ls(k, v){ try{ if(arguments.length===1) return localStorage.getItem(k); localStorage.setItem(k, v); }catch(e){ return null; } }
+  function ss(k, v){ try{ if(arguments.length===1) return sessionStorage.getItem(k); sessionStorage.setItem(k, v); }catch(e){ return null; } }
+  var n = parseInt(ls(K+'-n')||'0', 10) + 1;
+  ls(K+'-n', String(n));
+  if(n < 3 || ss(K+'-s')) return;
+  ss(K+'-s', '1');
+  var box = document.createElement('div');
+  box.className = 'jsb-funrate';
+  box.innerHTML = '<div class="jsb-fr-q">fun?</div><div class="jsb-fr-stars">' +
+    '<button type="button" data-s="1" aria-label="not fun">\u2605</button>' +
+    '<button type="button" data-s="2" aria-label="ok">\u2605</button>' +
+    '<button type="button" data-s="3" aria-label="love it">\u2605</button></div>';
+  if(!document.getElementById('jsb-fr-css')){
+    var css = document.createElement('style'); css.id = 'jsb-fr-css';
+    css.textContent = '.jsb-funrate{margin:14px auto 4px;text-align:center;}' +
+      '.jsb-fr-q{font-size:12px;letter-spacing:.18em;opacity:.55;margin-bottom:6px;text-transform:uppercase;}' +
+      '.jsb-fr-stars{display:flex;gap:10px;justify-content:center;}' +
+      '.jsb-fr-stars button{background:none;border:none;font-size:34px;line-height:1;' +
+      'color:rgba(255,255,255,.22);cursor:pointer;min-width:52px;min-height:52px;padding:4px;}' +
+      '.jsb-fr-stars button:active{transform:scale(1.25);color:#2ee6a8;}' +
+      '.jsb-fr-thanks{font-size:13px;letter-spacing:.1em;opacity:.7;}';
+    document.head.appendChild(css);
+  }
+  mountEl.appendChild(box);
+  box.addEventListener('click', function(e){
+    var b = e.target.closest ? e.target.closest('button[data-s]') : null;
+    if(!b) return;
+    try{ if(window.goatcounter && window.goatcounter.count){
+      window.goatcounter.count({ path: '/event/fun/' + slug + '/' + b.getAttribute('data-s'), event: true });
+    }}catch(e2){}
+    box.innerHTML = '<div class="jsb-fr-thanks">thanks</div>';
+    setTimeout(function(){ if(box.parentNode) box.parentNode.removeChild(box); }, 1400);
+  });
+}
 </script>
 </body>
 </html>

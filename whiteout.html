@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<script>
+/* ?view=desktop preview: force desktop theme on narrow screens */
+try {
+  if (new URLSearchParams(location.search).get("view") === "desktop") {
+    document.querySelector('meta[name="viewport"]').setAttribute("content", "width=1280");
+  }
+} catch (e) {}
+</script>
+<meta name="theme-color" content="#04070f">
+<title>Whiteout</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:#04070f;color:#e8f1f8;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden;overscroll-behavior:none}
+#app{position:fixed;inset:0;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:none}
+#cv{position:absolute;inset:0;width:100%;height:100%;display:block}
+#hud{position:absolute;top:0;left:0;right:0;padding:calc(10px + env(safe-area-inset-top)) 12px 10px 12px;display:flex;gap:10px;align-items:flex-end;pointer-events:none}
+.meter{flex:1;min-width:0}
+.meter .lab{font-size:12px;letter-spacing:.14em;opacity:.85;margin-bottom:3px}
+.meter .bar{height:10px;border-radius:6px;background:rgba(255,255,255,.13);overflow:hidden}
+.meter .fill{height:100%;border-radius:6px;transition:width .2s linear}
+#fireFill{background:linear-gradient(90deg,#ffb03c,#ff5f2b)}
+#warmFill{background:linear-gradient(90deg,#8fd8ff,#2e9fe8)}
+#fuelBox{text-align:center;min-width:52px}
+#fuelBox .lab{font-size:12px;letter-spacing:.14em;opacity:.85;margin-bottom:3px}
+#fuelN{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums}
+#clockBox{text-align:center;min-width:64px}
+#clockBox .lab{font-size:12px;letter-spacing:.14em;opacity:.85;margin-bottom:3px}
+#clock{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+#pauseBtn{pointer-events:auto;min-width:48px;min-height:48px;border-radius:12px;border:1px solid rgba(255,255,255,.25);background:rgba(10,18,30,.6);color:#e8f1f8;font-size:16px;font-weight:800}
+#storm{position:absolute;top:calc(76px + env(safe-area-inset-top));left:0;right:0;text-align:center;pointer-events:none}
+#storm .warn{display:inline-block;padding:6px 14px;border-radius:999px;background:rgba(120,170,220,.16);border:1px solid rgba(140,190,240,.4);font-size:13px;letter-spacing:.08em;font-weight:700}
+#storm .now{background:rgba(160,200,255,.22);border-color:rgba(180,215,255,.65)}
+#feedBtn{position:absolute;left:50%;transform:translateX(-50%);bottom:34px;bottom:max(34px, calc(20px + env(safe-area-inset-bottom)));min-height:60px;min-width:240px;padding:10px 26px;border-radius:16px;border:none;background:linear-gradient(180deg,#ff8a3c,#e85a1e);color:#1a0d04;font-size:17px;font-weight:800;letter-spacing:.04em;box-shadow:0 4px 24px rgba(255,120,40,.35)}
+#feedBtn:disabled{background:#3a4552;color:#9aa7b4;box-shadow:none}
+#feedBtn small{display:block;font-size:11px;font-weight:600;opacity:.85}
+#feedBtn.fed{min-width:0;padding:10px 22px}
+#feedBtn.fed small{display:none}
+#farwarn{position:absolute;top:calc(112px + env(safe-area-inset-top));left:0;right:0;text-align:center;font-size:15px;font-weight:700;color:#ffd9a8;text-shadow:0 2px 10px rgba(0,0,0,.8);opacity:0;transition:opacity .25s;pointer-events:none}
+#screen{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(2,6,12,.74);padding:20px;z-index:5}
+#screen[hidden]{display:none}
+.card{max-width:420px;width:100%;text-align:center;background:rgba(10,18,32,.92);border:1px solid rgba(140,190,240,.22);border-radius:20px;padding:28px 24px}
+.card h1{font-size:34px;letter-spacing:.18em;margin-bottom:6px}
+.card h2{font-size:24px;letter-spacing:.1em;margin-bottom:10px}
+.card .sub{opacity:.75;font-size:14px;margin-bottom:16px;line-height:1.5}
+.card .howto{text-align:left;font-size:14px;line-height:1.65;opacity:.9;margin:0 auto 18px;max-width:330px}
+.card .stats{display:flex;gap:12px;justify-content:center;margin-bottom:18px}
+.card .stat{background:rgba(255,255,255,.06);border-radius:12px;padding:10px 16px}
+.card .stat b{display:block;font-size:22px;font-variant-numeric:tabular-nums}
+.card .stat span{font-size:10px;letter-spacing:.12em;opacity:.7}
+button.big{min-height:54px;padding:12px 30px;font-size:17px;font-weight:800;letter-spacing:.06em;border-radius:14px;border:none;background:linear-gradient(180deg,#ff8a3c,#e85a1e);color:#1a0d04;margin:4px}
+button.ghost{min-height:54px;padding:12px 22px;font-size:15px;font-weight:700;border-radius:14px;border:1px solid rgba(255,255,255,.3);background:transparent;color:#e8f1f8;margin:4px}
+.tip{font-size:12px;opacity:.6;margin-top:14px;line-height:1.5}
+@media (min-width:1024px){
+ #hud{padding:calc(14px + env(safe-area-inset-top)) 20px 14px 20px;gap:18px}
+ .meter .lab,#fuelBox .lab,#clockBox .lab{font-size:12px}
+ .meter .bar{height:14px}
+ #fuelN{font-size:28px}
+ #clock{font-size:19px;font-variant-numeric:tabular-nums}
+ #pauseBtn{min-width:56px;min-height:56px}
+ #storm{top:calc(88px + env(safe-area-inset-top))}
+ #storm .warn{font-size:15px}
+ #feedBtn{left:auto;right:36px;transform:none;bottom:36px;min-width:300px;min-height:72px;font-size:20px;padding:14px 30px}
+ #feedBtn small{font-size:13px}
+ .card{max-width:560px;padding:36px 40px}
+ .card h1{font-size:42px}
+ .card h2{font-size:30px}
+ .card .sub{font-size:16px}
+ .card .howto{font-size:15px;max-width:440px}
+ button.big{min-height:60px;font-size:19px}
+ button.ghost{min-height:60px;font-size:16px}
+}
+@media (min-width:1440px){
+ #hud{padding:18px 28px calc(18px + env(safe-area-inset-top)) 28px;gap:28px;max-width:1600px;margin:0 auto;left:0;right:0}
+ #storm .warn{font-size:16px}
+ #feedBtn{right:60px;bottom:60px;min-width:340px;font-size:22px}
+ .card{max-width:640px}
+}
+</style>
+  <script data-goatcounter="https://georgestriderbuilds.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</head>
+<body>
+<div id="app">
+  <canvas id="cv"></canvas>
+  <div id="hud">
+    <div class="meter"><div class="lab">FIRE</div><div class="bar"><div class="fill" id="fireFill" style="width:85%"></div></div></div>
+    <div class="meter"><div class="lab">WARMTH</div><div class="bar"><div class="fill" id="warmFill" style="width:100%"></div></div></div>
+    <div id="fuelBox"><div class="lab">FUEL</div><div id="fuelN">25</div></div>
+    <div id="clockBox"><div class="lab">TO DAWN</div><div id="clock">6:00</div></div>
+    <button id="pauseBtn" aria-label="Pause">II</button>
+  </div>
+  <div id="storm"></div>
+  <button id="feedBtn">FEED THE FIRE<small id="feedSub">tap: 1 fuel, +9 fire</small></button>
+  <div id="farwarn"></div>
+  <div id="screen"><div class="card" id="card"></div></div>
+</div>
+<script>
+/*__SIM_START__*/
+"use strict";
+var WO = (function(){
+  var NIGHT = 360;
+  var STORMS = [[70,100],[170,205],[280,310]];
+  var WARN = 15;
+  var FIRE_BURN = 1.2, FIRE_STORM_MULT = 1.25, FEED_FIRE = 9;
+  var DRAIN = {1:2.5, 2:3.5, 3:4.5}, STORM_DRAIN_MULT = 2.5;
+  var RECOVER = 12, CAMP_COLD = 2, CAMP_COLD_FIRE = 20;
+  var LEG = {1:5, 2:8, 3:11}, STORM_SLOW = 1.25;
+  var FUEL = {1:12, 2:22, 3:35};
+  var CACHES = [{id:0,d:1},{id:1,d:2},{id:2,d:2},{id:3,d:3}];
+  function stormAt(t){
+    for(var i=0;i<STORMS.length;i++) if(t>=STORMS[i][0] && t<STORMS[i][1]) return i;
+    return -1;
+  }
+  function stormWarn(t){
+    for(var i=0;i<STORMS.length;i++){
+      var s = STORMS[i][0];
+      if(t < s) return (s - t <= WARN) ? Math.ceil(s - t) : null;
+    }
+    return null;
+  }
+  function legTime(dist, stormIdx){ return LEG[dist] * (stormIdx>=0 ? STORM_SLOW : 1); }
+  function newState(){
+    return {t:0, fire:85, fuel:25, warmth:100, gathered:0,
+            away:false, trip:null, over:null, won:false};
+  }
+  function step(s, dt, act){
+    act = act || {};
+    if(s.over) return s;
+    var st = stormAt(s.t), storm = st >= 0;
+    if(!s.away && act.feed > 0 && s.fuel > 0){
+      var n = Math.min(Math.floor(act.feed), s.fuel);
+      if(n > 0){ s.fuel -= n; s.fire = Math.min(100, s.fire + n*FEED_FIRE); }
+    }
+    if(!s.away && act.trip != null && act.trip !== undefined){
+      var id = Math.floor(act.trip);
+      if(id >= 0 && id < CACHES.length){
+        s.away = true;
+        s.trip = {cache:id, dist:CACHES[id].d, phase:"out", prog:0};
+      }
+    }
+    if(s.away){
+      var lt = legTime(s.trip.dist, st);
+      s.trip.prog += dt;
+      s.warmth -= DRAIN[s.trip.dist] * (storm ? STORM_DRAIN_MULT : 1) * dt;
+      if(s.trip.prog >= lt){
+        if(s.trip.phase === "out"){
+          var f = FUEL[s.trip.dist];
+          s.fuel += f; s.gathered += f;
+          s.trip.phase = "back"; s.trip.prog = 0;
+        } else { s.away = false; s.trip = null; }
+      }
+      if(s.warmth <= 0){ s.warmth = 0; s.over = "frozen"; return s; }
+    } else {
+      var rec = RECOVER * (0.25 + 0.75 * (s.fire/100));
+      s.warmth = Math.min(100, s.warmth + rec*dt);
+      if(s.fire < CAMP_COLD_FIRE) s.warmth -= CAMP_COLD*dt;
+      if(s.warmth <= 0){ s.warmth = 0; s.over = "frozen"; return s; }
+    }
+    s.fire -= FIRE_BURN * (storm ? FIRE_STORM_MULT : 1) * dt;
+    s.t += dt;
+    if(s.t >= NIGHT){ s.t = NIGHT; s.won = true; s.over = "dawn"; return s; }
+    if(s.fire <= 0){ s.fire = 0; s.over = "fire"; return s; }
+    return s;
+  }
+  function score(s){ return s.gathered + Math.floor(s.t); }
+  return {NIGHT:NIGHT, STORMS:STORMS, WARN:WARN, CACHES:CACHES,
+    FIRE_BURN:FIRE_BURN, FEED_FIRE:FEED_FIRE,
+    stormAt:stormAt, stormWarn:stormWarn, legTime:legTime,
+    newState:newState, step:step, score:score};
+})();
+/*__SIM_END__*/
+
+(function(){
+"use strict";
+var cv = document.getElementById("cv"), ctx = cv.getContext("2d");
+var fireFill = document.getElementById("fireFill"), warmFill = document.getElementById("warmFill");
+var fuelN = document.getElementById("fuelN"), clockEl = document.getElementById("clock");
+var stormEl = document.getElementById("storm"), feedBtn = document.getElementById("feedBtn");
+var feedSub = document.getElementById("feedSub"), screenEl = document.getElementById("screen");
+var card = document.getElementById("card"), pauseBtn = document.getElementById("pauseBtn");
+var dpr = 1, W = 0, H = 0;
+var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function store(k, v){ try{ localStorage.setItem(k, String(v)); }catch(e){} }
+function load(k, d){ try{ var v = localStorage.getItem(k); if(v==null) return d; var n = parseInt(v,10); return isNaN(n)?d:n; }catch(e){ return d; } }
+
+var S = WO.newState();
+var playing = false, paused = false;
+var pendFeed = 0, pendTrip = -1;
+var nights = load("wo-nights", 0), bestFuel = load("wo-best-fuel", 0);
+var soundOn = load("wo-sound", 1) === 1;
+
+/* ---------- audio ---------- */
+var AC = null, windGain = null, windFilter = null, master = null;
+function initAudio(){
+  if(AC) return;
+  try{
+    AC = new (window.AudioContext || window.webkitAudioContext)();
+    master = AC.createGain(); master.gain.value = soundOn ? 0.9 : 0; master.connect(AC.destination);
+    var len = AC.sampleRate * 2, buf = AC.createBuffer(1, len, AC.sampleRate), d = buf.getChannelData(0);
+    for(var i=0;i<len;i++) d[i] = Math.random()*2-1;
+    var src = AC.createBufferSource(); src.buffer = buf; src.loop = true;
+    windFilter = AC.createBiquadFilter(); windFilter.type = "lowpass"; windFilter.frequency.value = 380;
+    windGain = AC.createGain(); windGain.gain.value = 0.04;
+    src.connect(windFilter); windFilter.connect(windGain); windGain.connect(master);
+    src.start();
+  }catch(e){ AC = null; }
+}
+function setSound(on){
+  soundOn = on; store("wo-sound", on?1:0);
+  if(master) master.gain.setTargetAtTime(on?0.9:0, AC.currentTime, 0.05);
+}
+function crackle(intensity){
+  if(!AC || !soundOn || intensity<=0) return;
+  var t = AC.currentTime, o = AC.createBufferSource();
+  var len = Math.floor(AC.sampleRate*0.03), b = AC.createBuffer(1,len,AC.sampleRate), dd = b.getChannelData(0);
+  for(var i=0;i<len;i++) dd[i] = (Math.random()*2-1) * (1-i/len);
+  o.buffer = b;
+  var f = AC.createBiquadFilter(); f.type="bandpass"; f.frequency.value = 1400+Math.random()*1800; f.Q.value=1.2;
+  var g = AC.createGain(); g.gain.value = 0.10+intensity*0.12;
+  o.connect(f); f.connect(g); g.connect(master); o.start(t);
+}
+function tone(freq, dur, type, vol, when){
+  if(!AC || !soundOn) return;
+  var t = AC.currentTime + (when||0), o = AC.createOscillator(), g = AC.createGain();
+  o.type = type||"sine"; o.frequency.value = freq;
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol||0.15, t+0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, t+dur);
+  o.connect(g); g.connect(master); o.start(t); o.stop(t+dur+0.05);
+}
+function feedSound(){ tone(180, 0.18, "triangle", 0.12); tone(320, 0.12, "sine", 0.08, 0.05); }
+function pickupSound(){ tone(660, 0.25, "sine", 0.12); tone(990, 0.3, "sine", 0.1, 0.09); }
+function loseSound(){ tone(110, 1.2, "sawtooth", 0.1); tone(82, 1.6, "sine", 0.14, 0.15); }
+function winSound(){ var n=[262,330,392,523]; for(var i=0;i<n.length;i++) tone(n[i], 1.4, "sine", 0.1, i*0.22); }
+
+/* ---------- layout ---------- */
+function resize(){
+  dpr = Math.min(3, window.devicePixelRatio || 1);
+  W = window.innerWidth; H = window.innerHeight;
+  cv.width = Math.round(W*dpr); cv.height = Math.round(H*dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+window.addEventListener("resize", resize); resize();
+
+function campPos(){ return {x:W*0.5, y:H*0.70}; }
+function cachePos(i){
+  var p = [{x:0.22,y:0.52},{x:0.80,y:0.50},{x:0.30,y:0.25},{x:0.72,y:0.16}][i];
+  return {x:p.x*W, y:p.y*H};
+}
+var CACHE_FUEL_TXT = ["+12","+22","+22","+35"];
+
+/* ---------- screens ---------- */
+function showStart(){
+  screenEl.hidden = false;
+  card.innerHTML =
+    "<h1>WHITEOUT</h1>"+
+    '<p class="sub">One polar night. One fire. Hold it until dawn.</p>'+
+    '<div class="howto">'+
+    "FIRE burns down. Tap FEED THE FIRE to feed it fuel.<br>"+
+    "Tap a fuel cache to fetch it. Farther caches hold more fuel, but the cold bites harder out there.<br>"+
+    "Storms are coming. You can see them on the timer. Do not be out in one."+
+    "</div>"+
+    '<div class="stats"><div class="stat"><b>'+nights+'</b><span>NIGHTS</span></div>'+
+    '<div class="stat"><b>'+bestFuel+'</b><span>BEST FUEL</span></div></div>'+
+    '<button class="big" id="startBtn">HOLD THE NIGHT</button><br>'+
+    '<button class="ghost" id="sndBtn">SOUND: '+(soundOn?"ON":"OFF")+'</button>';
+  document.getElementById("startBtn").onclick = function(){ initAudio(); startGame(); };
+  document.getElementById("sndBtn").onclick = function(){ initAudio(); setSound(!soundOn); this.textContent = "SOUND: "+(soundOn?"ON":"OFF"); };
+}
+function showPause(){
+  paused = true;
+  screenEl.hidden = false;
+  card.innerHTML = "<h2>PAUSED</h2>"+
+    '<p class="sub">The night waits.</p>'+
+    '<button class="big" id="resumeBtn">RESUME</button>';
+  document.getElementById("resumeBtn").onclick = function(){ screenEl.hidden = true; paused = false; };
+}
+function showEnd(){
+  playing = false;
+  if(S.won){ nights++; store("wo-nights", nights); winSound(); }
+  else loseSound();
+  if(S.gathered > bestFuel){ bestFuel = S.gathered; store("wo-best-fuel", bestFuel); }
+  var title = S.over==="dawn" ? "DAWN BREAKS" : (S.over==="fire" ? "THE FIRE IS OUT" : "FROZEN");
+  var msg = S.over==="dawn" ? "You held the night." :
+    (S.over==="fire" ? "The dark and the cold take the camp." : "The cold took you on the trail.");
+  screenEl.hidden = false;
+  card.innerHTML = "<h2>"+title+"</h2>"+
+    '<p class="sub">'+msg+'</p>'+
+    '<div class="stats"><div class="stat"><b>'+Math.floor(S.t)+'</b><span>SECONDS</span></div>'+
+    '<div class="stat"><b>'+S.gathered+'</b><span>FUEL</span></div>'+
+    '<div class="stat"><b>'+WO.score(S)+'</b><span>SCORE</span></div></div>'+
+    '<button class="big" id="againBtn">ANOTHER NIGHT</button>';
+  document.getElementById("againBtn").onclick = function(){ startGame(); };
+  if(!S.won)jsbFunRate('whiteout', card);
+}
+function startGame(){
+  S = WO.newState(); pendFeed = 0; pendTrip = -1;
+  playing = true; paused = false; screenEl.hidden = true;
+}
+
+/* ---------- input ---------- */
+feedBtn.addEventListener("click", function(){
+  if(!playing || paused || S.away || S.fuel<=0) return;
+  pendFeed++; feedSound();
+  feedBtn.classList.add("fed"); // audit P6: once learned, the button compacts; the how-to keeps the numbers
+});
+var farWarnUntil = 0;
+function tryTrip(i){
+  if(i === 3 && Date.now() > farWarnUntil){
+    farWarnUntil = Date.now() + 2600;
+    var w = document.getElementById("farwarn");
+    w.textContent = "The far cache: a long walk in deep cold. Tap it again to go.";
+    w.style.opacity = "1";
+    setTimeout(function(){ w.style.opacity = "0"; }, 2500);
+    return;
+  }
+  pendTrip = i; pickupSound();
+}
+cv.addEventListener("pointerdown", function(e){
+  if(!playing || paused || S.away) return;
+  var r = cv.getBoundingClientRect(), x = e.clientX-r.left, y = e.clientY-r.top;
+  for(var i=0;i<4;i++){
+    var p = cachePos(i), dx = x-p.x, dy = y-p.y;
+    if(dx*dx+dy*dy < 38*38){ tryTrip(i); return; }
+  }
+});
+document.addEventListener("keydown", function(e){
+  if(!playing || paused) return;
+  if(e.key==="f"||e.key==="F"){ if(!S.away && S.fuel>0){ pendFeed++; feedSound(); } }
+  var n = parseInt(e.key,10);
+  if(n>=1 && n<=4 && !S.away){ tryTrip(n-1); }
+});
+pauseBtn.addEventListener("click", function(){ if(playing && !paused) showPause(); });
+document.addEventListener("visibilitychange", function(){
+  if(document.hidden && playing && !paused && !S.over) showPause();
+});
+
+/* ---------- render ---------- */
+var stars = [];
+for(var si=0; si<90; si++) stars.push({x:Math.random(), y:Math.random()*0.55, r:Math.random()*1.4+0.4, p:Math.random()*6.28});
+var snowP = [];
+for(var ni=0; ni<70; ni++) snowP.push({x:Math.random(), y:Math.random(), s:0.5+Math.random()*1.5});
+var sparks = [];
+
+function render(now){
+  var tsec = now/1000;
+  var dawnF = Math.max(0, Math.min(1, (S.t-(WO.NIGHT-40))/40));
+  var st = WO.stormAt(S.t), storm = st>=0;
+  var g = ctx.createLinearGradient(0,0,0,H);
+  var topC = [4,7,15], horC = [16,26,48];
+  if(dawnF>0){ horC = [16+90*dawnF, 26+40*dawnF, 48+10*dawnF]; }
+  g.addColorStop(0, "rgb("+topC[0]+","+topC[1]+","+topC[2]+")");
+  g.addColorStop(0.55, "rgb("+horC[0]+","+horC[1]+","+horC[2]+")");
+  g.addColorStop(0.56, "#0d1626"); g.addColorStop(1, "#16233a");
+  ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+  var i, x, y;
+  ctx.save();
+  for(i=0;i<stars.length;i++){
+    var tw = reduced?0.7:(0.45+0.35*Math.sin(tsec*1.3+stars[i].p));
+    ctx.globalAlpha = tw*(1-dawnF*0.9);
+    ctx.fillStyle = "#cfe4ff";
+    ctx.fillRect(stars[i].x*W, stars[i].y*H, stars[i].r, stars[i].r);
+  }
+  ctx.restore();
+  if(!reduced && dawnF<0.7){
+    ctx.save(); ctx.globalAlpha = 0.10*(1-dawnF);
+    for(var b=0;b<2;b++){
+      ctx.beginPath();
+      for(x=0;x<=W;x+=24){
+        y = H*(0.10+b*0.07) + Math.sin(x*0.008 + tsec*(0.25+b*0.14) + b*2)*26;
+        if(x===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      }
+      ctx.lineTo(W,0); ctx.lineTo(0,0); ctx.closePath();
+      ctx.fillStyle = b? "#3fe0b0" : "#4fa8ff"; ctx.fill();
+    }
+    ctx.restore();
+  }
+  var cp = campPos();
+  for(i=0;i<4;i++){
+    var p = cachePos(i), pulse = reduced?0:(0.5+0.5*Math.sin(tsec*2+i*1.7));
+    var gr = ctx.createRadialGradient(p.x,p.y,2,p.x,p.y,44);
+    gr.addColorStop(0,"rgba(120,200,255,"+(0.25+0.15*pulse)+")"); gr.addColorStop(1,"rgba(120,200,255,0)");
+    ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(p.x,p.y,44,0,6.29); ctx.fill();
+    ctx.fillStyle = "#5a3d22";
+    ctx.fillRect(p.x-13,p.y-8,26,16);
+    ctx.fillStyle = "#7a5228"; ctx.fillRect(p.x-13,p.y-8,26,5);
+    ctx.fillStyle = "#9fd8ff"; ctx.font = "700 12px system-ui"; ctx.textAlign = "center";
+    ctx.fillText(CACHE_FUEL_TXT[i], p.x, p.y-16);
+    ctx.fillStyle = "rgba(159,216,255,.75)";
+    for(var dp=0; dp<=WO.CACHES[i].d; dp++) ctx.fillRect(p.x-10+dp*8, p.y+14, 5, 5);
+  }
+  ctx.fillStyle = "#2a3648";
+  ctx.beginPath(); ctx.moveTo(cp.x-46,cp.y+26); ctx.lineTo(cp.x,cp.y-26); ctx.lineTo(cp.x+46,cp.y+26); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = "#1c2534";
+  ctx.beginPath(); ctx.moveTo(cp.x-14,cp.y+26); ctx.lineTo(cp.x,cp.y-2); ctx.lineTo(cp.x+14,cp.y+26); ctx.closePath(); ctx.fill();
+  var fireR = 46 + S.fire*1.1;
+  var fg = ctx.createRadialGradient(cp.x,cp.y,4,cp.x,cp.y,fireR);
+  fg.addColorStop(0,"rgba(255,170,60,"+(0.35+S.fire/100*0.4)+")");
+  fg.addColorStop(1,"rgba(255,120,40,0)");
+  ctx.fillStyle = fg; ctx.beginPath(); ctx.arc(cp.x,cp.y,fireR,0,6.29); ctx.fill();
+  if(S.fire > 0){
+    var fl = reduced?0:(Math.sin(tsec*13)*0.5+Math.sin(tsec*7.3)*0.5);
+    var fh = 20 + S.fire*0.28 + fl*4;
+    ctx.fillStyle = "#ff7a2b";
+    ctx.beginPath(); ctx.ellipse(cp.x,cp.y-8,11,fh*0.5,0,0,6.29); ctx.fill();
+    ctx.fillStyle = "#ffc93c";
+    ctx.beginPath(); ctx.ellipse(cp.x,cp.y-6,6,fh*0.32,0,0,6.29); ctx.fill();
+    if(!reduced && Math.random()<S.fire/100*0.25 && sparks.length<40)
+      sparks.push({x:cp.x+(Math.random()-0.5)*14, y:cp.y-14, vy:-30-Math.random()*40, vx:(Math.random()-0.5)*20, life:1});
+  }
+  ctx.fillStyle = "#3a2c1c";
+  ctx.fillRect(cp.x-20,cp.y+2,40,7);
+  var px, py;
+  if(S.away && S.trip){
+    var tp = cachePos(S.trip.cache);
+    var lt = WO.legTime(S.trip.dist, st);
+    var k = Math.min(1, S.trip.prog/lt);
+    if(S.trip.phase==="back") k = 1-k;
+    px = cp.x+(tp.x-cp.x)*k; py = cp.y+(tp.y-cp.y)*k;
+  } else { px = cp.x+34; py = cp.y+14; }
+  ctx.fillStyle = "#d8e6f5";
+  ctx.beginPath(); ctx.arc(px,py-14,7,0,6.29); ctx.fill();
+  ctx.fillStyle = "#b3541e";
+  ctx.fillRect(px-7,py-14,14,16);
+  if(!reduced && storm){
+    ctx.save(); ctx.strokeStyle = "rgba(220,235,255,.5)"; ctx.lineWidth = 1.4;
+    for(i=0;i<snowP.length;i++){
+      var sp = snowP[i];
+      sp.x -= (0.012+sp.s*0.008); sp.y += sp.s*0.004;
+      if(sp.x<0){sp.x=1;sp.y=Math.random();} if(sp.y>1) sp.y=0;
+      ctx.beginPath(); ctx.moveTo(sp.x*W,sp.y*H); ctx.lineTo(sp.x*W-14,sp.y*H+7); ctx.stroke();
+    }
+    ctx.restore();
+  }
+  if(S.warmth < 35){
+    var vg = ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*0.3,W/2,H/2,Math.max(W,H)*0.75);
+    vg.addColorStop(0,"rgba(60,120,200,0)"); vg.addColorStop(1,"rgba(60,120,200,"+(0.35*(1-S.warmth/35))+")");
+    ctx.fillStyle = vg; ctx.fillRect(0,0,W,H);
+  }
+  for(i=sparks.length-1;i>=0;i--){
+    var s2 = sparks[i]; s2.life -= 0.016; s2.x += s2.vx*0.016; s2.y += s2.vy*0.016;
+    if(s2.life<=0){ sparks.splice(i,1); continue; }
+    ctx.globalAlpha = s2.life; ctx.fillStyle = "#ffcf6e";
+    ctx.fillRect(s2.x, s2.y, 2.4, 2.4); ctx.globalAlpha = 1;
+  }
+}
+
+/* ---------- HUD ---------- */
+function fmtClock(){
+  var r = Math.max(0, WO.NIGHT - S.t), m = Math.floor(r/60), s = Math.floor(r%60);
+  return m+":"+(s<10?"0":"")+s;
+}
+function hud(){
+  fireFill.style.width = Math.max(0,S.fire)+"%";
+  warmFill.style.width = Math.max(0,S.warmth)+"%";
+  warmFill.style.background = S.warmth<30 ? "linear-gradient(90deg,#9fd0ff,#5a7fd8)" : "linear-gradient(90deg,#8fd8ff,#2e9fe8)";
+  fuelN.textContent = S.fuel;
+  clockEl.textContent = fmtClock();
+  var st = WO.stormAt(S.t), warn = WO.stormWarn(S.t);
+  if(st>=0) stormEl.innerHTML = '<span class="warn now">STORM</span>';
+  else if(warn!=null) stormEl.innerHTML = '<span class="warn">STORM IN '+warn+'s</span>';
+  else stormEl.innerHTML = "";
+  if(!playing || S.away || S.fuel<=0){
+    feedBtn.disabled = true;
+    feedSub.textContent = S.away ? "away from the fire" : (S.fuel<=0 ? "no fuel left" : "tap: 1 fuel, +9 fire");
+  } else {
+    feedBtn.disabled = false;
+    feedSub.textContent = "tap: 1 fuel, +9 fire";
+  }
+}
+
+/* ---------- loop ---------- */
+var last = 0;
+function frame(now){
+  requestAnimationFrame(frame);
+  if(!last) last = now;
+  var dt = Math.min(0.05, (now-last)/1000); last = now;
+  if(playing && !paused && !S.over){
+    var act = {feed:pendFeed, trip:pendTrip};
+    pendFeed = 0; pendTrip = -1;
+    WO.step(S, dt, act);
+    if(!reduced && Math.random() < (S.fire/100)*0.22) crackle(S.fire/100);
+    if(windGain && AC){
+      var st2 = WO.stormAt(S.t)>=0;
+      windGain.gain.setTargetAtTime(st2?0.20:0.045, AC.currentTime, 0.8);
+      windFilter.frequency.setTargetAtTime(st2?900:380, AC.currentTime, 0.8);
+    }
+    if(S.over) showEnd();
+  }
+  render(now);
+  hud();
+}
+
+showStart();
+requestAnimationFrame(frame);
+})();
+</script>
+
+<script>
+/* fun-rating: 3 stars on game over, 3rd+ game over, once per session */
+function jsbFunRate(slug, mountEl){
+  if(!mountEl || mountEl.querySelector('.jsb-funrate')) return;
+  var K = 'jsb-fun-' + slug;
+  function ls(k, v){ try{ if(arguments.length===1) return localStorage.getItem(k); localStorage.setItem(k, v); }catch(e){ return null; } }
+  function ss(k, v){ try{ if(arguments.length===1) return sessionStorage.getItem(k); sessionStorage.setItem(k, v); }catch(e){ return null; } }
+  var n = parseInt(ls(K+'-n')||'0', 10) + 1;
+  ls(K+'-n', String(n));
+  if(n < 3 || ss(K+'-s')) return;
+  ss(K+'-s', '1');
+  var box = document.createElement('div');
+  box.className = 'jsb-funrate';
+  box.innerHTML = '<div class="jsb-fr-q">fun?</div><div class="jsb-fr-stars">' +
+    '<button type="button" data-s="1" aria-label="not fun">\u2605</button>' +
+    '<button type="button" data-s="2" aria-label="ok">\u2605</button>' +
+    '<button type="button" data-s="3" aria-label="love it">\u2605</button></div>';
+  if(!document.getElementById('jsb-fr-css')){
+    var css = document.createElement('style'); css.id = 'jsb-fr-css';
+    css.textContent = '.jsb-funrate{margin:14px auto 4px;text-align:center;}' +
+      '.jsb-fr-q{font-size:12px;letter-spacing:.18em;opacity:.55;margin-bottom:6px;text-transform:uppercase;}' +
+      '.jsb-fr-stars{display:flex;gap:10px;justify-content:center;}' +
+      '.jsb-fr-stars button{background:none;border:none;font-size:34px;line-height:1;' +
+      'color:rgba(255,255,255,.22);cursor:pointer;min-width:52px;min-height:52px;padding:4px;}' +
+      '.jsb-fr-stars button:active{transform:scale(1.25);color:#2ee6a8;}' +
+      '.jsb-fr-thanks{font-size:13px;letter-spacing:.1em;opacity:.7;}';
+    document.head.appendChild(css);
+  }
+  mountEl.appendChild(box);
+  box.addEventListener('click', function(e){
+    var b = e.target.closest ? e.target.closest('button[data-s]') : null;
+    if(!b) return;
+    try{ if(window.goatcounter && window.goatcounter.count){
+      window.goatcounter.count({ path: '/event/fun/' + slug + '/' + b.getAttribute('data-s'), event: true });
+    }}catch(e2){}
+    box.innerHTML = '<div class="jsb-fr-thanks">thanks</div>';
+    setTimeout(function(){ if(box.parentNode) box.parentNode.removeChild(box); }, 1400);
+  });
+}
+</script>
+</body>
+</html>
